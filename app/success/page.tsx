@@ -1,9 +1,9 @@
 "use client";
 
-import { jsPDF } from "jspdf";
-
 export default function SuccessPage() {
-  const handleDownload = () => {
+  const handleDownload = async () => {
+    const { jsPDF } = await import("jspdf");
+
     const doc = new jsPDF();
 
     doc.setFontSize(22);
