@@ -6,35 +6,109 @@ import Footer from "./components/Footer";
 
 type Step = "landing" | "assessment" | "lead" | "results";
 
-type Answers = {
-  governanceFramework: number;
-  boardRoles: number;
-  riskOversight: number;
-  complianceReview: number;
-  strategicAlignment: number;
-  boardEvaluation: number;
+const sections = [
+  {
+    title: "Board structure",
+    questions: [
+      "Clear board and management roles",
+      "Skills matrix reviewed annually",
+      "Board succession planning in place",
+      "Board charter or governance framework is current",
+      "Role descriptions exist for Chair and Directors",
+    ],
+  },
+  {
+    title: "Risk and compliance",
+    questions: [
+      "Risk register reviewed regularly",
+      "Key legal and regulatory obligations are documented",
+      "Delegations or authorities are current",
+      "Policies are reviewed on a set cycle",
+      "Compliance reporting is provided to the board",
+    ],
+  },
+  {
+    title: "Finance and oversight",
+    questions: [
+      "Board receives meaningful financial reports",
+      "Budget monitoring is consistent",
+      "Reserves or cash policy is documented",
+      "Audit or independent review is conducted",
+      "Financial risks are clearly understood",
+    ],
+  },
+  {
+    title: "Culture and effectiveness",
+    questions: [
+      "Conflicts of interest are managed well",
+      "Board performance is reviewed annually",
+      "Meetings focus on strategy, not only operations",
+      "Directors feel safe to challenge",
+      "CEO or Executive performance is reviewed annually",
+    ],
+  },
+] as const;
+
+type Answers = Record<string, number>;
+
+type Lead = {
+  name: string;
+  organisation: string;
+  email: string;
 };
 
-const initialAnswers: Answers = {
-  governanceFramework: 3,
-  boardRoles: 3,
-  riskOversight: 3,
-  complianceReview: 3,
-  strategicAlignment: 3,
-  boardEvaluation: 3,
-};
-
-const scoreLabel = (score: number) => {
+function getScoreBand(score: number) {
   if (score >= 85) return "High Governance Maturity";
   if (score >= 65) return "Established Governance";
   if (score >= 45) return "Developing Governance";
   return "Foundational Governance";
-};
+}
+
+function getPriorityActions(score: number) {
+  if (score >= 85) {
+    return [
+      "Maintain strong governance disciplines and review them annually",
+      "Continue board development and capability uplift",
+      "Use the assessment as a benchmarking tool over time",
+    ];
+  }
+
+  if (score >= 65) {
+    return [
+      "Clarify key governance roles and accountability",
+      "Strengthen board reporting and oversight cadence",
+      "Address lower-scoring governance areas in the next 12 months",
+    ];
+  }
+
+  if (score >= 45) {
+    return [
+      "Formalise governance structures and review cycles",
+      "Improve risk oversight and compliance visibility",
+      "Introduce a board improvement plan with clear ownership",
+    ];
+  }
+
+  return [
+    "Clarify governance roles and responsibilities",
+    "Strengthen risk oversight processes",
+    "Improve board reporting quality",
+  ];
+}
+
+function getRoadmap() {
+  return [
+    "Q1: Address key risks",
+    "Q2: Strengthen systems",
+    "Q3: Embed practices",
+    "Q4: Review progress",
+  ];
+}
 
 export default function HomePage() {
   const [step, setStep] = useState<Step>("landing");
-  const [answers, setAnswers] = useState<Answers>(initialAnswers);
-  const [user, setUser] = useState({
+  const [answers, setAnswers] = useState<Answers>({});
+  const [lead, setLead] = useState<Lead>({
     name: "",
     organisation: "",
     email: "",
@@ -42,57 +116,66 @@ export default function HomePage() {
   const [savingLead, setSavingLead] = useState(false);
   const [startingCheckout, setStartingCheckout] = useState(false);
 
-  const categories = useMemo(() => {
-    return [
-      {
-        title: "Governance Framework",
-        value: answers.governanceFramework,
-        description: "Policies, structure, and governance foundations are in place.",
-      },
-      {
-        title: "Board Roles & Accountability",
-        value: answers.boardRoles,
-        description: "Directors, executives, and committees understand responsibilities.",
-      },
-      {
-        title: "Risk & Oversight",
-        value: answers.riskOversight,
-        description: "Risk monitoring and oversight practices support decision-making.",
-      },
-      {
-        title: "Compliance Review",
-        value: answers.complianceReview,
-        description: "Compliance obligations are reviewed, documented, and monitored.",
-      },
-      {
-        title: "Strategic Alignment",
-        value: answers.strategicAlignment,
-        description: "Board activities are aligned to mission, strategy, and performance.",
-      },
-      {
-        title: "Board Evaluation",
-        value: answers.boardEvaluation,
-        description: "Board effectiveness is reviewed and improved over time.",
-      },
-    ];
-  }, [answers]);
+  const totalQuestions = useMemo(
+    () => sections.reduce((sum, section) => sum + section.questions.length, 0),
+    []
+  );
 
-  const totalScore = useMemo(() => {
+  const answeredCount = useMemo(
+    () => Object.values(answers).filter((value) => Number(value) > 0).length,
+    [answers]
+  );
+
+  const score = useMemo(() => {
     const values = Object.values(answers);
-    const max = values.length * 5;
-    const sum = values.reduce((acc, current) => acc + current, 0);
-    return Math.round((sum / max) * 100);
+    if (!values.length) return 0;
+    const total = values.reduce((sum, value) => sum + Number(value), 0);
+    return Math.round((total / (values.length * 4)) * 100);
   }, [answers]);
 
-  const handleAnswerChange = (key: keyof Answers, value: number) => {
+  const categoryScores = useMemo(() => {
+    return sections.map((section) => {
+      const values = section.questions.map((question) => answers[question] || 0);
+      const total = values.reduce((sum, value) => sum + Number(value), 0);
+      const categoryScore = values.length
+        ? Math.round((total / (values.length * 4)) * 100)
+        : 0;
+
+      return {
+        title: section.title,
+        score: categoryScore,
+      };
+    });
+  }, [answers]);
+
+  const topRisks = useMemo(() => {
+    return Object.entries(answers)
+      .filter(([, value]) => Number(value) <= 2)
+      .map(([question]) => question)
+      .slice(0, 3);
+  }, [answers]);
+
+  const priorityActions = useMemo(() => getPriorityActions(score), [score]);
+  const roadmap = useMemo(() => getRoadmap(), []);
+
+  function handleAnswer(question: string, value: number) {
     setAnswers((prev) => ({
       ...prev,
-      [key]: value,
+      [question]: value,
     }));
-  };
+  }
 
-  const handleLeadSubmit = async () => {
-    if (!user.name || !user.organisation || !user.email) {
+  function handleContinueToLead() {
+    if (answeredCount < totalQuestions) {
+      alert("Please answer all questions before continuing.");
+      return;
+    }
+
+    setStep("lead");
+  }
+
+  async function handleLeadSubmit() {
+    if (!lead.name || !lead.organisation || !lead.email) {
       alert("Please complete your name, organisation, and email.");
       return;
     }
@@ -106,9 +189,11 @@ export default function HomePage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ...user,
+          ...lead,
+          score,
+          categoryScores,
+          topRisks,
           answers,
-          totalScore,
           submittedAt: new Date().toISOString(),
         }),
       });
@@ -116,46 +201,46 @@ export default function HomePage() {
       setStep("results");
     } catch (error) {
       console.error(error);
-      alert("There was a problem saving the details.");
+      alert("There was a problem saving the lead.");
     } finally {
       setSavingLead(false);
     }
-  };
+  }
 
-  const handlePayment = async () => {
+  async function handlePayment() {
     try {
       setStartingCheckout(true);
 
-      const res = await fetch("/api/checkout", {
+      const response = await fetch("/api/checkout", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ...user,
-          totalScore,
+          ...lead,
+          score,
         }),
       });
 
-      const data = await res.json();
+      const data = await response.json();
 
       if (data?.url) {
         window.location.href = data.url;
         return;
       }
 
-      alert("Unable to start payment.");
+      alert("Unable to start checkout.");
     } catch (error) {
       console.error(error);
-      alert("Something went wrong starting checkout.");
+      alert("There was a problem starting payment.");
     } finally {
       setStartingCheckout(false);
     }
-  };
+  }
 
   return (
     <main className="boardium-page">
-     <Header onStart={() => setStep("assessment")} />
+      <Header onStart={() => setStep("assessment")} />
 
       {step === "landing" && (
         <>
@@ -165,14 +250,19 @@ export default function HomePage() {
                 <div className="mini-kicker">BOARDIUM GOVERNANCE HEALTH CHECK</div>
                 <h1>Streamlining Governance, Empowering Strategy.</h1>
                 <p>
-                  A simple governance assessment tool designed to help boards,
-                  executives, and organisations identify strengths, gaps, and next-step priorities.
+                  A practical governance health check for not-for-profit boards,
+                  designed to identify strengths, expose risks, and support clearer
+                  next-step action.
                 </p>
 
                 <div className="hero-actions">
-                  <button className="primary-btn" onClick={() => setStep("assessment")}>
+                  <button
+                    className="primary-btn"
+                    onClick={() => setStep("assessment")}
+                  >
                     Start Assessment
                   </button>
+
                   <a className="secondary-btn" href="#overview">
                     Learn More
                   </a>
@@ -181,10 +271,10 @@ export default function HomePage() {
 
               <div className="hero-card">
                 <div className="logo-mark">b</div>
-                <h3>Board-ready in minutes</h3>
+                <h3>Board-ready diagnostic</h3>
                 <p>
-                  Capture governance insights, generate a professional summary,
-                  and unlock a downloadable PDF report after payment.
+                  Complete the assessment, review your governance maturity score,
+                  and unlock a professional report tailored to your organisation.
                 </p>
               </div>
             </div>
@@ -194,38 +284,39 @@ export default function HomePage() {
             <div className="container">
               <div className="section-heading">
                 <span>BOARDIUM SERVICES</span>
-                <h2>Let&apos;s take your governance review to the next level</h2>
+                <h2>Quick insight across the areas that matter most</h2>
                 <p>
-                  This practical health check provides a quick snapshot of governance maturity
-                  across structure, accountability, risk, compliance, and board effectiveness.
+                  This tool provides a rapid governance diagnostic across board
+                  structure, risk and compliance, finance and oversight, and culture
+                  and effectiveness.
                 </p>
               </div>
 
               <div className="feature-grid">
                 <article className="feature-card">
                   <div className="feature-top" />
-                  <h3>Practical assessment</h3>
+                  <h3>Rapid assessment</h3>
                   <p>
-                    A clear, easy-to-complete multi-section review suitable for boards,
-                    not-for-profits, and SME organisations.
+                    A simple structured review designed for not-for-profits and
+                    board-led organisations.
                   </p>
                 </article>
 
                 <article className="feature-card">
                   <div className="feature-top" />
-                  <h3>Instant scoring</h3>
+                  <h3>Clear scoring</h3>
                   <p>
-                    View your governance maturity score immediately with category-level breakdowns
-                    to support discussion and planning.
+                    Instantly view overall governance maturity, category breakdowns,
+                    and key risk areas.
                   </p>
                 </article>
 
                 <article className="feature-card">
                   <div className="feature-top" />
-                  <h3>Professional PDF report</h3>
+                  <h3>Professional output</h3>
                   <p>
-                    Download a branded board-ready report with your organisation name,
-                    date, results summary, and recommendations.
+                    Unlock a branded board-ready report with priorities, actions,
+                    and a practical roadmap.
                   </p>
                 </article>
               </div>
@@ -242,7 +333,10 @@ export default function HomePage() {
                 <div>
                   <span className="eyebrow">ASSESSMENT</span>
                   <h2>Governance Health Check</h2>
-                  <p>Rate each area from 1 to 5 based on your current governance maturity.</p>
+                  <p>
+                    Rate each statement from 1 to 4 based on your current governance
+                    maturity.
+                  </p>
                 </div>
 
                 <button className="text-btn" onClick={() => setStep("landing")}>
@@ -251,56 +345,39 @@ export default function HomePage() {
               </div>
 
               <div className="question-list">
-                <QuestionRow
-                  title="Governance Framework"
-                  description="Do you have clear governance structures, policies, and decision-making processes in place?"
-                  value={answers.governanceFramework}
-                  onChange={(value) => handleAnswerChange("governanceFramework", value)}
-                />
+                {sections.map((section) => (
+                  <div key={section.title} className="question-section-card">
+                    <div className="question-section-heading">
+                      <h3>{section.title}</h3>
+                      <p>
+                        Rate each statement from 1 to 4, where 1 is low maturity and
+                        4 is strong practice.
+                      </p>
+                    </div>
 
-                <QuestionRow
-                  title="Board Roles & Accountability"
-                  description="Are board, executive, and committee roles clearly defined and understood?"
-                  value={answers.boardRoles}
-                  onChange={(value) => handleAnswerChange("boardRoles", value)}
-                />
-
-                <QuestionRow
-                  title="Risk & Oversight"
-                  description="Does your board actively oversee risk, controls, and organisational performance?"
-                  value={answers.riskOversight}
-                  onChange={(value) => handleAnswerChange("riskOversight", value)}
-                />
-
-                <QuestionRow
-                  title="Compliance Review"
-                  description="Are legal, regulatory, and policy compliance obligations regularly reviewed?"
-                  value={answers.complianceReview}
-                  onChange={(value) => handleAnswerChange("complianceReview", value)}
-                />
-
-                <QuestionRow
-                  title="Strategic Alignment"
-                  description="Is the board aligned to strategic priorities, mission, and organisational outcomes?"
-                  value={answers.strategicAlignment}
-                  onChange={(value) => handleAnswerChange("strategicAlignment", value)}
-                />
-
-                <QuestionRow
-                  title="Board Evaluation"
-                  description="Do you review board effectiveness and identify opportunities for improvement?"
-                  value={answers.boardEvaluation}
-                  onChange={(value) => handleAnswerChange("boardEvaluation", value)}
-                />
+                    <div className="question-section-items">
+                      {section.questions.map((question) => (
+                        <QuestionRow
+                          key={question}
+                          title={question}
+                          value={answers[question] || 0}
+                          onChange={(value) => handleAnswer(question, value)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="assessment-footer">
                 <div className="score-preview">
-                  <span>Current score</span>
-                  <strong>{totalScore}%</strong>
+                  <span>
+                    Answered {answeredCount} of {totalQuestions}
+                  </span>
+                  <strong>{score}%</strong>
                 </div>
 
-                <button className="primary-btn" onClick={() => setStep("lead")}>
+                <button className="primary-btn" onClick={handleContinueToLead}>
                   Continue
                 </button>
               </div>
@@ -317,7 +394,10 @@ export default function HomePage() {
                 <div>
                   <span className="eyebrow">YOUR DETAILS</span>
                   <h2>Before viewing your results</h2>
-                  <p>Please provide your details so we can personalise the report.</p>
+                  <p>
+                    Please provide your details so we can personalise the report
+                    and capture your assessment.
+                  </p>
                 </div>
 
                 <button className="text-btn" onClick={() => setStep("assessment")}>
@@ -329,8 +409,10 @@ export default function HomePage() {
                 <label>
                   Full Name
                   <input
-                    value={user.name}
-                    onChange={(e) => setUser((prev) => ({ ...prev, name: e.target.value }))}
+                    value={lead.name}
+                    onChange={(e) =>
+                      setLead((prev) => ({ ...prev, name: e.target.value }))
+                    }
                     placeholder="Enter your full name"
                   />
                 </label>
@@ -338,9 +420,12 @@ export default function HomePage() {
                 <label>
                   Organisation
                   <input
-                    value={user.organisation}
+                    value={lead.organisation}
                     onChange={(e) =>
-                      setUser((prev) => ({ ...prev, organisation: e.target.value }))
+                      setLead((prev) => ({
+                        ...prev,
+                        organisation: e.target.value,
+                      }))
                     }
                     placeholder="Enter organisation name"
                   />
@@ -350,8 +435,10 @@ export default function HomePage() {
                   Email Address
                   <input
                     type="email"
-                    value={user.email}
-                    onChange={(e) => setUser((prev) => ({ ...prev, email: e.target.value }))}
+                    value={lead.email}
+                    onChange={(e) =>
+                      setLead((prev) => ({ ...prev, email: e.target.value }))
+                    }
                     placeholder="Enter email address"
                   />
                 </label>
@@ -359,11 +446,15 @@ export default function HomePage() {
 
               <div className="assessment-footer">
                 <div className="score-preview">
-                  <span>Your score</span>
-                  <strong>{totalScore}%</strong>
+                  <span>Your score preview</span>
+                  <strong>{score}%</strong>
                 </div>
 
-                <button className="primary-btn" onClick={handleLeadSubmit} disabled={savingLead}>
+                <button
+                  className="primary-btn"
+                  onClick={handleLeadSubmit}
+                  disabled={savingLead}
+                >
                   {savingLead ? "Saving..." : "View Results"}
                 </button>
               </div>
@@ -378,60 +469,101 @@ export default function HomePage() {
             <div className="results-hero">
               <div>
                 <span className="eyebrow">RESULTS SUMMARY</span>
-                <h2>{scoreLabel(totalScore)}</h2>
+                <h2>{getScoreBand(score)}</h2>
                 <p>
-                  This snapshot highlights your current governance maturity across key board and oversight areas.
+                  This governance snapshot highlights your organisation’s current
+                  maturity across key board and oversight areas.
                 </p>
               </div>
 
               <div className="score-badge">
                 <span>Total Score</span>
-                <strong>{totalScore}%</strong>
+                <strong>{score}%</strong>
               </div>
             </div>
 
             <div className="result-grid">
-              {categories.map((item) => (
-                <div key={item.title} className="result-card">
+              {categoryScores.map((category) => (
+                <div key={category.title} className="result-card">
                   <div className="result-card-top">
-                    <h3>{item.title}</h3>
-                    <span>{item.value}/5</span>
+                    <h3>{category.title}</h3>
+                    <span>{category.score}%</span>
                   </div>
-                  <p>{item.description}</p>
+                  <p>
+                    Category-level result based on your responses in this governance
+                    area.
+                  </p>
                 </div>
               ))}
             </div>
 
+            <div className="results-detail-grid">
+              <div className="detail-panel">
+                <h3>Top Risks</h3>
+                {topRisks.length ? (
+                  <ul>
+                    {topRisks.map((risk) => (
+                      <li key={risk}>{risk}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No major low-scoring risks identified.</p>
+                )}
+              </div>
+
+              <div className="detail-panel">
+                <h3>Priority Actions</h3>
+                <ul>
+                  {priorityActions.map((action) => (
+                    <li key={action}>{action}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="detail-panel">
+                <h3>12 Month Roadmap</h3>
+                <ul>
+                  {roadmap.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
             <div className="report-cta">
               <div>
-                <h3>Unlock your full board-ready PDF report</h3>
+                <h3>Unlock your full Boardium report</h3>
                 <p>
-                  Includes your organisation name, date, summary score, category results,
-                  and a professionally formatted document for download.
+                  Includes organisation details, assessment date, score summary,
+                  category breakdowns, risks, and practical next-step actions.
                 </p>
               </div>
 
-              <button className="primary-btn" onClick={handlePayment} disabled={startingCheckout}>
-                {startingCheckout ? "Redirecting..." : "Download Full Report — $149"}
+              <button
+                className="primary-btn"
+                onClick={handlePayment}
+                disabled={startingCheckout}
+              >
+                {startingCheckout
+                  ? "Redirecting..."
+                  : "Unlock Full Report — AUD $149"}
               </button>
             </div>
           </div>
         </section>
       )}
 
-     <Footer />
+      <Footer />
     </main>
   );
 }
 
 function QuestionRow({
   title,
-  description,
   value,
   onChange,
 }: {
   title: string;
-  description: string;
   value: number;
   onChange: (value: number) => void;
 }) {
@@ -439,11 +571,10 @@ function QuestionRow({
     <div className="question-row">
       <div className="question-copy">
         <h3>{title}</h3>
-        <p>{description}</p>
       </div>
 
       <div className="rating-group">
-        {[1, 2, 3, 4, 5].map((num) => (
+        {[1, 2, 3, 4].map((num) => (
           <button
             key={num}
             type="button"
