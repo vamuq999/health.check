@@ -1,26 +1,6 @@
 "use client";
 
 export default function SuccessPage() {
-  const handleDownload = async () => {
-    const { jsPDF } = await import("jspdf");
-
-    const doc = new jsPDF();
-
-    doc.setFontSize(22);
-    doc.setTextColor(23, 23, 82);
-    doc.text("BOARDIUM", 20, 20);
-
-    doc.setFontSize(16);
-    doc.text("Governance Health Check Report", 20, 32);
-
-    doc.setFontSize(11);
-    doc.setTextColor(60, 60, 60);
-    doc.text("Thank you for your purchase.", 20, 48);
-    doc.text("Your branded report layout will go here next.", 20, 58);
-
-    doc.save("boardium-governance-report.pdf");
-  };
-
   return (
     <main
       style={{
@@ -55,28 +35,30 @@ export default function SuccessPage() {
         </div>
 
         <h1 style={{ color: "#171752", marginTop: 0, fontSize: "2.2rem" }}>
-          Your report is ready
+          Your payment was received
         </h1>
 
         <p style={{ color: "#22234f", lineHeight: 1.7, marginBottom: "24px" }}>
-          You can now download your Boardium Governance Health Check PDF report.
+          Your Boardium report download page is ready. PDF generation will be connected next.
         </p>
 
-        <button
-          onClick={handleDownload}
+        <a
+          href="/"
           style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
             background: "#14d2d0",
             color: "#ffffff",
-            border: "none",
             borderRadius: "999px",
             minHeight: "54px",
             padding: "0 22px",
             fontWeight: 700,
-            cursor: "pointer",
+            textDecoration: "none",
           }}
         >
-          Download Report
-        </button>
+          Return Home
+        </a>
       </div>
     </main>
   );
